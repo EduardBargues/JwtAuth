@@ -23,8 +23,7 @@ namespace Auth
 
         public async Task InvokeAsync(HttpContext context)
         {
-            AuthStatus auth = authService.GenerateAuth();
-
+            //(string accessToken, string refreshToken) = authService.GenerateAuth();
             bool okAccessToken = context.Request.Headers.TryGetValue(accessTokenKey, out StringValues accessTokenValues)
                 && accessTokenValues.Any();
             bool okRefreshToken = context.Request.Headers.TryGetValue(refreshTokenKey, out StringValues refreshTokenValues)

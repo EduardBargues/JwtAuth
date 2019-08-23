@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 
+using Auth;
+
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApplication1.Controllers
@@ -10,6 +12,7 @@ namespace WebApplication1.Controllers
     {
         // GET api/values
         [HttpGet]
+        [AuthAttribute]
         public ActionResult<IEnumerable<string>> Get()
         {
             return new string[] { "value1", "value2" };
