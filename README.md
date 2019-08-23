@@ -1,2 +1,2 @@
 # JwtAuth
-Repo to authenticate logic about authentication. Uses both access and refresh tokens.
+Repo with authentication logic. Uses both access and refresh tokens.
