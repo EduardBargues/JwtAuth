@@ -1,4 +1,6 @@
-﻿namespace Auth
+﻿using Microsoft.AspNetCore.Http;
+
+namespace Auth
 {
     public interface IAuthService
     {

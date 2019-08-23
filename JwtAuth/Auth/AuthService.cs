@@ -1,9 +1,13 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Net;
 using System.Security.Principal;
 using System.Text;
-
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Primitives;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Auth

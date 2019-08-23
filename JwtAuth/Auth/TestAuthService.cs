@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading;
-
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Logging;
 
@@ -11,7 +12,7 @@ using NUnit.Framework;
 namespace Auth
 {
     [TestFixture]
-    public class TestAuthService
+    internal class TestAuthService
     {
         [Test]
         public void GenerateAuth_StandardConfiguration_ProvidedTokensValid()
