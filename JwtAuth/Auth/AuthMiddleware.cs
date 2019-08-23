@@ -39,21 +39,21 @@ namespace Auth
             }
             else
             {
-                context.Response.Headers.Add(Strings.AuthenticationResponseKey, "Access or refresh token not provided");
+                context.Response.Headers.Add(Strings.AuthenticationResponseKey, Strings.AccessOrRefreshTokenNotProvided);
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             }
         }
 
         private void ValidStatus(HttpContext context, string accessToken, string refreshToken)
         {
-            context.Response.Headers.Add(Strings.AuthenticationResponseKey, "Authentication successful");
+            context.Response.Headers.Add(Strings.AuthenticationResponseKey, Strings.AuthenticationSuccesful);
             context.Response.Headers.Add(Strings.AccessTokenKey, accessToken);
             context.Response.Headers.Add(Strings.RefreshTokenKey, refreshToken);
         }
 
         private void InvalidadStatus(HttpContext context)
         {
-            context.Response.Headers.Add(Strings.AuthenticationResponseKey, "Invalid access and refresh tokens");
+            context.Response.Headers.Add(Strings.AuthenticationResponseKey, Strings.InvalidAccessAndRefreshTokens);
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
         }
     }
