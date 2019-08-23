@@ -11,15 +11,33 @@ namespace Auth
     internal class AuthService : IAuthService
     {
         private readonly AuthConfiguration configuration;
+        private readonly SymmetricSecurityKey securityKey;
+        private readonly JwtSecurityTokenHandler tokenHandler;
+        private readonly TokenValidationParameters validationParameters;
 
         public AuthService(IOptions<AuthConfiguration> configuration)
-            => this.configuration = configuration.Value;
+        {
+            this.configuration = configuration.Value;
+            securityKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(this.configuration.Seed));
+            tokenHandler = new JwtSecurityTokenHandler();
+            validationParameters = new TokenValidationParameters()
+            {
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+                ValidateAudience = false,
+                ValidateActor = false,
+                ValidateIssuer = false,
+                ValidateIssuerSigningKey = false,
+                ValidateTokenReplay = false,
+                IssuerSigningKey = securityKey
+            };
+        }
 
         public AuthStatus RefreshAuth(string accessToken, string refreshToken)
         {
             bool accessTokenValid = IsTokenValid(accessToken);
             bool refreshTokenValid = IsTokenValid(refreshToken);
-            AuthStatus status = new AuthStatus() { Valid = accessTokenValid && refreshTokenValid };
+            AuthStatus status = new AuthStatus() { Valid = refreshTokenValid };
             if (!accessTokenValid && refreshTokenValid)
             {
                 status.AccessToken = GenerateToken(configuration.AccessTokenExpirationSpan);
@@ -40,33 +58,24 @@ namespace Auth
 
         private string GenerateToken(TimeSpan expiration)
         {
-            SecurityTokenDescriptor tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Expires = DateTime.UtcNow.Add(expiration),
-                SigningCredentials = new SigningCredentials(
-                    new SymmetricSecurityKey(Encoding.ASCII.GetBytes(configuration.Seed)),
-                    SecurityAlgorithms.HmacSha256Signature),
-            };
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            SecurityToken token = tokenHandler.CreateToken(tokenDescriptor);
+            SecurityToken token = tokenHandler.CreateToken(
+                new SecurityTokenDescriptor
+                {
+                    Expires = DateTime.UtcNow.Add(expiration),
+                    SigningCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature),
+                });
             return tokenHandler.WriteToken(token);
         }
 
         private bool IsTokenValid(string token)
         {
-            JwtSecurityTokenHandler tokenHandler = new JwtSecurityTokenHandler();
-            TokenValidationParameters validationParameters = new TokenValidationParameters()
-            {
-                ValidateLifetime = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(configuration.Seed))
-            };
             bool isValid;
             try
             {
                 IPrincipal principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
                 isValid = true;
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 isValid = false;
             }

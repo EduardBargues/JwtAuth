@@ -11,9 +11,6 @@ namespace Auth
     {
         private readonly RequestDelegate next;
         private readonly IAuthService authService;
-        private readonly string accessTokenKey = "access-token";
-        private readonly string refreshTokenKey = "refresh-token";
-        private readonly string authenticationResponseKey = "authentication-response";
 
         public AuthMiddleware(RequestDelegate requestDelegate, IAuthService serviceOptions)
         {
@@ -23,10 +20,9 @@ namespace Auth
 
         public async Task InvokeAsync(HttpContext context)
         {
-            //(string accessToken, string refreshToken) = authService.GenerateAuth();
-            bool okAccessToken = context.Request.Headers.TryGetValue(accessTokenKey, out StringValues accessTokenValues)
+            bool okAccessToken = context.Request.Headers.TryGetValue(Strings.AccessTokenKey, out StringValues accessTokenValues)
                 && accessTokenValues.Any();
-            bool okRefreshToken = context.Request.Headers.TryGetValue(refreshTokenKey, out StringValues refreshTokenValues)
+            bool okRefreshToken = context.Request.Headers.TryGetValue(Strings.RefreshTokenKey, out StringValues refreshTokenValues)
                 && refreshTokenValues.Any();
             if (okAccessToken && okRefreshToken)
             {
@@ -43,21 +39,21 @@ namespace Auth
             }
             else
             {
-                context.Response.Headers.Add(authenticationResponseKey, "Access or refresh token not provided");
+                context.Response.Headers.Add(Strings.AuthenticationResponseKey, "Access or refresh token not provided");
                 context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
             }
         }
 
         private void ValidStatus(HttpContext context, string accessToken, string refreshToken)
         {
-            context.Response.Headers.Add(authenticationResponseKey, "Authentication successful");
-            context.Response.Headers.Add(accessTokenKey, accessToken);
-            context.Response.Headers.Add(refreshTokenKey, refreshToken);
+            context.Response.Headers.Add(Strings.AuthenticationResponseKey, "Authentication successful");
+            context.Response.Headers.Add(Strings.AccessTokenKey, accessToken);
+            context.Response.Headers.Add(Strings.RefreshTokenKey, refreshToken);
         }
 
         private void InvalidadStatus(HttpContext context)
         {
-            context.Response.Headers.Add(authenticationResponseKey, "Invalid access and refresh tokens");
+            context.Response.Headers.Add(Strings.AuthenticationResponseKey, "Invalid access and refresh tokens");
             context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
         }
     }
