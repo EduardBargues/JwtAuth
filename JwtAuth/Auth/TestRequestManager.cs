@@ -1,111 +1,111 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
-
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using Moq;
-
 using NUnit.Framework;
 
 namespace Auth
 {
     [TestFixture]
-    public class TestAuthMiddleware
+    internal class TestRequestManager
     {
         [Test]
-        public async Task InvokeAsync_NoAccessTokenHeader_ResponseWithMissingTokensHeader()
+        public async Task ProcessContext_NoAccessTokenHeader_ResponseWithMissingTokensHeader()
         {
             // Arrange
             Mock<RequestDelegate> delegateMock = new Mock<RequestDelegate>();
             Mock<IAuthService> authServiceMock = new Mock<IAuthService>();
-            AuthMiddleware middleware = new AuthMiddleware(delegateMock.Object, authServiceMock.Object);
+            RequestPipelineManager service = new RequestPipelineManager(authServiceMock.Object);
             HttpContext context = new DefaultHttpContext();
 
             // Act
-            await middleware.InvokeAsync(context);
+            HttpContext processedContext = service.ProcessRequest(context);
 
             // Assert
-            Assert.IsNotEmpty(context.Response.Headers);
-            bool hasRespons = context.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
+            Assert.IsNotEmpty(processedContext.Response.Headers);
+            bool hasRespons = processedContext.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
             Assert.IsTrue(hasRespons);
             Assert.IsNotEmpty(values);
             Assert.AreEqual(Strings.AccessOrRefreshTokenNotProvided, values[0]);
+            Assert.AreEqual((int)HttpStatusCode.BadRequest, processedContext.Response.StatusCode);
         }
 
         [Test]
-        public async Task InvokeAsync_NoRefreshTokenHeader_ResponseWithMissingTokenHeader()
+        public async Task ProcessContext_NoRefreshTokenHeader_ResponseWithMissingTokenHeader()
         {
             // Arrange
-            Mock<RequestDelegate> delegateMock = new Mock<RequestDelegate>();
             Mock<IAuthService> authServiceMock = new Mock<IAuthService>();
-            AuthMiddleware middleware = new AuthMiddleware(delegateMock.Object, authServiceMock.Object);
+            RequestPipelineManager service = new RequestPipelineManager(authServiceMock.Object);
             HttpContext context = new DefaultHttpContext();
             context.Request.Headers.Add(Strings.AccessTokenKey, "accesstoken");
 
             // Act
-            await middleware.InvokeAsync(context);
+            HttpContext processedContext = service.ProcessRequest(context);
 
             // Assert
-            Assert.IsNotEmpty(context.Response.Headers);
-            bool hasRespons = context.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
+            Assert.IsNotEmpty(processedContext.Response.Headers);
+            bool hasRespons = processedContext.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
             Assert.IsTrue(hasRespons);
             Assert.IsNotEmpty(values);
             Assert.AreEqual(Strings.AccessOrRefreshTokenNotProvided, values[0]);
-            Assert.AreEqual((int)HttpStatusCode.BadRequest, context.Response.StatusCode);
+            Assert.AreEqual((int)HttpStatusCode.BadRequest, processedContext.Response.StatusCode);
         }
 
         [Test]
-        public async Task InvokeAsync_InvalidAuthStatus_InvalidAuthResponseProvided()
+        public async Task ProcessContext_InvalidAuthStatus_InvalidAuthResponseProvided()
         {
             // Arrange
-            Mock<RequestDelegate> delegateMock = new Mock<RequestDelegate>();
             Mock<IAuthService> authServiceMock = GetInvalidAuthService();
-            AuthMiddleware middleware = new AuthMiddleware(delegateMock.Object, authServiceMock.Object);
+            RequestPipelineManager service = new RequestPipelineManager(authServiceMock.Object);
             HttpContext context = GetRequestWithTokens();
 
             // Act
-            await middleware.InvokeAsync(context);
+            HttpContext processedContext = service.ProcessRequest(context);
 
             // Assert
-            Assert.IsNotEmpty(context.Response.Headers);
-            bool hasRespons = context.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
+            Assert.IsNotEmpty(processedContext.Response.Headers);
+            bool hasRespons = processedContext.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
             Assert.IsTrue(hasRespons);
             Assert.IsNotEmpty(values);
             Assert.AreEqual(Strings.InvalidAccessAndRefreshTokens, values[0]);
-            Assert.AreEqual((int)HttpStatusCode.Unauthorized, context.Response.StatusCode);
+            Assert.AreEqual((int)HttpStatusCode.Unauthorized, processedContext.Response.StatusCode);
         }
 
         [Test]
-        public async Task InvokeAsync_ValidAuthStatus_InvalidAuthResponseProvided()
+        public async Task ProcessContext_ValidAuthStatus_InvalidAuthResponseProvided()
         {
             // Arrange
-            Mock<RequestDelegate> delegateMock = new Mock<RequestDelegate>();
             string accessToken = "accessToken";
             string refreshToken = "refreshToken";
             Mock<IAuthService> authServiceMock = GetValidAuthService(accessToken, refreshToken);
-            AuthMiddleware middleware = new AuthMiddleware(delegateMock.Object, authServiceMock.Object);
+            RequestPipelineManager service = new RequestPipelineManager(authServiceMock.Object);
             HttpContext context = GetRequestWithTokens();
 
             // Act
-            await middleware.InvokeAsync(context);
+            HttpContext processedContext = service.ProcessRequest(context);
 
             // Assert
-            Assert.IsNotEmpty(context.Response.Headers);
-            bool hasRespons = context.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
+            Assert.IsNotEmpty(processedContext.Response.Headers);
+            bool hasRespons = processedContext.Response.Headers.TryGetValue(Strings.AuthenticationResponseKey, out StringValues values);
             Assert.IsTrue(hasRespons);
             Assert.IsNotEmpty(values);
             Assert.AreEqual(Strings.AuthenticationSuccesful, values[0]);
 
-            bool hasAccessToken = context.Response.Headers.TryGetValue(Strings.AccessTokenKey, out StringValues accessTokenValues);
+            bool hasAccessToken = processedContext.Response.Headers.TryGetValue(Strings.AccessTokenKey, out StringValues accessTokenValues);
             Assert.IsTrue(hasAccessToken);
             Assert.IsNotEmpty(accessToken);
             Assert.AreEqual(accessToken, accessTokenValues[0]);
 
-            bool hasRefreshToken = context.Response.Headers.TryGetValue(Strings.RefreshTokenKey, out StringValues refreshTokenValues);
+            bool hasRefreshToken = processedContext.Response.Headers.TryGetValue(Strings.RefreshTokenKey, out StringValues refreshTokenValues);
             Assert.IsTrue(hasRefreshToken);
             Assert.IsNotEmpty(refreshTokenValues);
             Assert.AreEqual(refreshToken, refreshTokenValues[0]);
+
+            Assert.AreEqual((int)HttpStatusCode.Accepted, processedContext.Response.StatusCode);
         }
 
         private static Mock<IAuthService> GetValidAuthService(string accessToken, string refreshToken)
@@ -133,5 +133,6 @@ namespace Auth
             context.Request.Headers.Add(Strings.RefreshTokenKey, "refreshtoken");
             return context;
         }
+
     }
 }
